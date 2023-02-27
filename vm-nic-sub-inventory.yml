@@ -1,0 +1,19 @@
+- name: Set variables
+  vars:
+    _nic:                                 "{{ vmnic_item }}"
+  set_fact:
+    ip_list:                              "{{ _nic.ip_endpoint_list }}"
+    vlan_list:                            "{{ _nic.trunked_vlan_list }}"
+    mac:                                  "{{ _nic.mac_address }}"
+
+
+    nic_uuid:                             "{{ _nic.uuid }}" 
+
+
+- name: Add to vm nic csv file
+  lineinfile:
+      path: "{{ vm_nic_csv }}"
+      line: >-
+        {{  vm_name + ',' + mac + ',' + nic_uuid 
+        }}
+  # vm_name,mac,nic_uuid 

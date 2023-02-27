@@ -1,0 +1,46 @@
+- name: Set variables
+  vars:
+    _res:                             "{{ vm_item.status.resources }}"
+    _status:                          "{{ vm_item.status }}"
+
+  set_fact:
+    cluster_name:                     "{{ _status.cluster_reference.name }}"
+    cluster_uuid:                     "{{ _status.cluster_reference.uuid }}"
+
+    vm_name:                          "{{ _status.name }}"
+    description:                      "{{ ( 'description' in _status.keys()) | ternary(_status.description, '') }}"
+    boot_type:                        "{{ _res.boot_config.boot_type }}"
+    timezone:                         "{{ _res.hardware_clock_timezone }}"
+    hypevisor_type:                   "{{ _res.hypervisor_type }}"
+    machine_type:                     "{{ _res.machine_type }}"
+    memory:                           "{{ _res.memory_size_mib }}"
+    socket:                           "{{ _res.num_sockets }}"
+    thread:                           "{{ _res.num_threads_per_core }}"
+    vcpu:                             "{{ _res.num_vcpus_per_socket }}"
+    power_state:                      "{{ _res.power_state }}"
+
+    disk_list:                        "{{ _res.disk_list }}"
+    nic_list:                         "{{ _res.nic_list }}"
+
+- name: Add to vms csv file
+  lineinfile:
+      path: "{{ vm_csv }}"
+      line: >-
+        {{  cluster_name + ',' + vm_name + ',' + description + ',' + hypevisor_type + ',' + power_state + ',' + 
+            vcpu + ',' + thread + ',' + socket + ',' + memory 
+        }}
+  # cluster_name,name,description,hypevisor_type,power_state,
+  # vcpu,thread,socket,memory 
+
+
+- name: Get nic vm inventory
+  include_tasks: vm-nic-sub-inventory.yml
+  loop: '{{ nic_list }}'
+  loop_control:
+      loop_var: vmnic_item
+
+- name: Get disk vm inventory
+  include_tasks: vm-disk-sub-inventory.yml
+  loop: '{{ disk_list }}'
+  loop_control:
+      loop_var: vmdk_item

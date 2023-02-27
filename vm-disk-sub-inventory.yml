@@ -1,0 +1,22 @@
+- name: Set variables
+  vars:
+    _prop:                                "{{ vmdk_item.device_properties }}"
+    _address:                             "{{ vmdk_item.device_properties.disk_address}}"
+  set_fact:
+    disk_type:                            "{{ _prop.device_type }}"
+    adapter_type:                         "{{ _address.adapter_type }}"
+    device_index:                         "{{ _address.device_index }}"
+
+    size:                                 "{{ ( 'disk_size_bytes' in vmdk_item.keys() ) | ternary(vmdk_item.disk_size_bytes, '') }}"
+    disk_uuid:                            "{{ vmdk_item.uuid }}" 
+
+
+- name: Add to vm disk csv file
+  lineinfile:
+      path: "{{ vm_disk_csv }}"
+      line: >-
+        {{  vm_name + ',' + disk_type + ',' + adapter_type + ',' + 
+            device_index + ',' + size + ',' + disk_uuid 
+        }}
+  # vm_name,disk_type,adapter_type,
+  # device_index,size,disk_uuid 

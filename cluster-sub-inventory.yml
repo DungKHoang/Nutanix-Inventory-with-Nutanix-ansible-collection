@@ -1,0 +1,39 @@
+- name: Set variables
+  vars:
+    _meta:                            "{{ clu_item.metadata }}"
+    _spec:                            "{{ clu_item.spec }}"
+    _res:                             "{{ clu_item.spec.resources }}"
+    _net:                             "{{ clu_item.status.resources.network }}"
+
+    _status:                          "{{ clu_item.status }}"
+    _config:                          "{{ clu_item.status.resources.config }}"
+    _dns:                             "{{ (_net.name_server_ip_list | length == 0) | ternary('' , _net.name_server_ip_list)}}"
+    _ntp:                             "{{ (_net.ntp_server_ip_list | length == 0) | ternary('' , _net.ntp_server_ip_list) }}"
+
+  set_fact:
+    uuid:                             "{{ _meta.uuid }}"
+    
+    name:                             "{{ _status.name }}"
+    redundancy:                       "{{ _config.redundancy_factor }}"
+    timezone:                         "{{ _config.timezone }}"
+    version:                          "{{ _config.build.version }}"
+
+    data_services_ip:                 "{{ _net.external_data_services_ip }}"
+    ip:                               "{{ _net.external_ip }}"
+    subnet:                           "{{ _net.external_subnet }}"
+    int_subnet:                       "{{ _net.internal_subnet }}"
+    dns:                              "{{ (_dns | length > 1) | ternary( (_dns | join('|')), _dns[0] ) }}"
+    ntp:                              "{{ (_ntp | length > 1) | ternary( (_ntp | join('|')), _ntp[0] ) }}"
+
+
+- name: Add to cluster csv file
+  lineinfile:
+      path: "{{ cluster_csv }}"
+      line: >-
+        {{  name + ',' + redundancy + ',' + version + ',' + timezone + ',' + 
+            data_services_ip + ',' + ip + ',' + subnet + ',' + dns + ',' + ntp + ',' + uuid 
+        }}
+  # name,redundancy_factor,version,timezone,
+  # data_services_ip,ip,subnet,dns,ntp,uuid
+
+

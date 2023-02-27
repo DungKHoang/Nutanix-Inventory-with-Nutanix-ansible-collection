@@ -1,0 +1,35 @@
+- name: Set variables
+  vars:
+    _res:                             "{{ node_item.status.resources }}"
+    _status:                          "{{ node_item.status }}"
+
+  set_fact:
+    clu_uuid:                         "{{ _status.cluster_reference.uuid }}"
+    name:                             "{{ _status.name }}"
+
+    model:                            "{{ _res.block.block_model }}"
+    serial_number:                    "{{ _res.block.block_serial_number }}"
+    cvm_ip:                           "{{ _res.controller_vm.ip }}"
+
+    cpu_model:                        "{{ _res.cpu_model }}"
+    cpu_capacity:                     "{{ (_res.cpu_capacity_hz | int) / 1000000000}}" # in Ghz
+    cpu_core:                         "{{ _res.num_cpu_cores }}"
+    cpu_socket:                       "{{ _res.num_cpu_sockets }}"
+    memory:                           "{{ _res.memory_capacity_mib }}"
+
+    host_ip:                          "{{ _res.hypervisor.ip }}"
+    host_hypervisor:                  "{{ _res.hypervisor.hypervisor_full_name }}"
+    host_ilo_ip:                      "{{ _res.ipmi.ip }}"
+
+
+- name: Add to nodes csv file
+  lineinfile:
+      path: "{{ node_csv }}"
+      line: >-
+        {{  name + ',' + model + ',' + host_hypervisor + ',' + 
+            cpu_model + ',' + cpu_capacity + ',' + cpu_core + ',' + cpu_socket + ',' + memory + ',' + 
+            cvm_ip + ',' + host_ip + ',' + host_ilo_ip 
+        }}
+  # name,model,host_hypervisor,
+  # cpu_model,cpu_capacity,cpu_core,cpu_socket,memory,
+  # controller_vm, host_ip,ilo_ip

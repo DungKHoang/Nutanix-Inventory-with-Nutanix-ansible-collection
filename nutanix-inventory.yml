@@ -1,0 +1,132 @@
+---
+- hosts: localhost
+  gather_facts:       false
+  collections:
+    -   nutanix.ncp
+  vars:
+      prism:            <IP-address>
+      p_username:       <admin-name>
+      p_password:       <password>
+       
+
+
+
+  tasks: 
+    - name: Define timestamp
+      set_fact: timestamp="{{ lookup('pipe', 'date +%Y%m%d_%H%M') }}"
+      run_once: true
+
+
+    - name: Generate csv/json files
+      block:
+        - name: define csv/json folder
+          set_fact:
+             csvdir:      "csv"
+
+        - name: Create dropoff directory for CSV
+          file:
+            path: "{{ csvdir }}"
+            state: directory
+
+        - name: Define CSV names
+          set_fact:
+             cluster_csv:                 "{{csvdir}}/cluster.csv"
+             node_csv:                    "{{csvdir}}/node.csv"
+             vm_csv:                      "{{csvdir}}/vm.csv"
+             vm_disk_csv:                 "{{csvdir}}/vm_disk.csv"
+             vm_nic_csv:                  "{{csvdir}}/vm_nic.csv"
+
+
+
+
+        # ----- CSV files contents
+        - name: create CSV cluster file
+          copy:
+            dest: "{{ cluster_csv }}"
+            content: >-
+             name,redundancy_factor,version,timezone,
+             data_services_ip,ip,subnet,dns,ntp,uuid
+
+        - name: create CSV node file
+          copy:
+            dest: "{{ node_csv }}"
+            content: >-
+             name,model,host_hypervisor,
+             cpu_model,cpu_capacity,cpu_core,cpu_socket,memory,
+             controller_vm, host_ip,ilo_ip
+
+        - name: create CSV vm file
+          copy:
+            dest: "{{ vm_csv }}"
+            content: >-
+              cluster_name,name,description,hypevisor_type,power_state,
+              vcpu,thread,socket,memory 
+
+        - name: create CSV vm_disk file
+          copy:
+            dest: "{{ vm_disk_csv }}"
+            content: >- 
+              vm_name,disk_type,adapter_type,
+              device_index,size,disk_uuid 
+
+        - name: create CSV vm_nic file
+          copy:
+            dest: "{{ vm_nic_csv }}"
+            content: >- 
+              vm_name,mac,nic_uuid 
+
+
+# ----------------------------------
+#   Collection starts here
+# ----------------------------------
+
+        - name: get cluster information
+          ntnx_clusters_info:
+            nutanix_host:       "{{ prism }}"  
+            nutanix_username:   "{{ p_username }}"
+            nutanix_password:   "{{ p_password }}"
+            validate_certs:     false 
+          register:             clu_result
+
+        - name: get host info
+          ntnx_hosts_info:
+            nutanix_host:       "{{ prism }}"  
+            nutanix_username:   "{{ p_username }}"
+            nutanix_password:   "{{ p_password }}"
+            validate_certs:     false 
+          register:             node_result
+
+        - name: get vms information
+          ntnx_vms_info:
+            nutanix_host:       "{{ prism }}"  
+            nutanix_username:   "{{ p_username }}"
+            nutanix_password:   "{{ p_password }}"
+            validate_certs:     false 
+          register:             vm_result
+        
+
+        - name: Define endpoints
+          set_fact:
+            cluster_endpoint:           "{{ clu_result.response.entities }}" 
+            node_endpoint:              '{{ node_result.response.entities }}'
+            vm_endpoint:                '{{ vm_result.response.entities }}'
+
+               
+        - name: Get cluster inventory
+          include_tasks: cluster-sub-inventory.yml
+          loop: '{{ cluster_endpoint }}'
+          loop_control:
+              loop_var: clu_item
+
+        - name: Get node inventory
+          include_tasks: node-sub-inventory.yml
+          loop: '{{ node_endpoint }}'
+          loop_control:
+              loop_var: node_item
+
+        - name: Get vm inventory
+          include_tasks: vm-sub-inventory.yml
+          loop: '{{ vm_endpoint }}'
+          loop_control:
+              loop_var: vm_item
+
