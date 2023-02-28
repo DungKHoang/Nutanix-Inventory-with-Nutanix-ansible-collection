@@ -102,6 +102,7 @@
             nutanix_username:   "{{ p_username }}"
             nutanix_password:   "{{ p_password }}"
             validate_certs:     false 
+            length:             1000                  # arbitrary number to get all VMs. If not specified, it returns only 22
           register:             vm_result
         
 
