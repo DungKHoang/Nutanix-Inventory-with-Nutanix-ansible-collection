@@ -1,0 +1,67 @@
+- name: Initialize variables
+  set_fact:
+    _res:                   "{{ subnet_item.status.resources }}"
+    _meta:                  "{{ subnet_item.metadata }}" 
+    _status:                "{{ subnet_item.status }}"
+
+    gw:                     ""
+    dhcp:                   ""
+    pool_range:             ""
+    subnet_ip:              ""
+    length:                 ""
+    owner:                  ""
+
+- name: Set variables
+  set_fact:
+    name:                   "{{ _status.name }}" 
+    cluster:                "{{ _status.cluster_reference.name }}"
+
+    type:                   "{{ _res.subnet_type }}"
+    sw:                     "{{ _res.vswitch_name }}"
+    vlan:                   "{{ _res.vlan_id }}"
+
+- name: Set variables on IPs
+  block: 
+    - name: Set gateway variable
+      set_fact:
+        gw:                 "{{ _res.ip_config.default_gateway_ip }}"
+      when: " 'default_gateway_ip' in _res.ip_config.keys() " 
+
+    - name: Set dhcp variable
+      set_fact:
+        dhcp:               "{{ _res.ip_config.dhcp_server_address.ip }}"
+      when: "'dhcp_server_address' in _res.ip_config.keys() "
+
+    - name: Set pool_range variable
+      set_fact:
+        pool_range:         "{{ _res.ip_config.pool_list | map(attribute = 'range') | list | join('|') }}"
+      when: "'pool_list' in _res.ip_config.keys()"
+
+    - name: Set prefix_length variable
+      set_fact:
+        length:             "{{_res.ip_config.prefix_length }}" 
+      when: "'prefix_length' in _res.ip_config.keys()"
+
+    - name: Set subnet_ip variable
+      set_fact:
+        subnet_ip:          "{{ _res.ip_config.subnet_ip }}"
+      when: "'subnet_ip' in _res.ip_config.keys()"
+
+    - name: Set owner variable
+      set_fact:
+        owner:              "{{ _meta.owner_reference.name }}"
+      when: "'owner_reference' in _meta.keys()"
+
+  when: " _res.ip_config is defined "
+
+
+
+- name: Add to subnet csv file
+  lineinfile:
+      path: "{{ subnet_csv }}"
+      line: >-
+        {{  cluster  + ',' + name  + ',' + type  + ',' + vlan  + ',' + sw + ',' +
+            subnet_ip + ',' + length + ',' + gw + ',' + dhcp + ',' + pool_range + ',' + owner
+        }}
+# cluster_name,name,type,vlan,switch_name,subnet_ip,length,gateway,dhcp,pool_range,owner
+

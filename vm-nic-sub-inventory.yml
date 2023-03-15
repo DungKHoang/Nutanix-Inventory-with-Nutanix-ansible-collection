@@ -1,19 +1,39 @@
 - name: Set variables
-  vars:
-    _nic:                                 "{{ vmnic_item }}"
   set_fact:
-    ip_list:                              "{{ _nic.ip_endpoint_list }}"
-    vlan_list:                            "{{ _nic.trunked_vlan_list }}"
-    mac:                                  "{{ _nic.mac_address }}"
+    dns:                    "" 
+    ips:                    ""
+    gw:                     ""
+
+    ip_list:                "{{ vmnic_item.ip_endpoint_list }}"
+    vlan_list:              "{{ vmnic_item.trunked_vlan_list }}"
+    mac:                    "{{ vmnic_item.mac_address }}"
+
+    nic_uuid:               "{{ vmnic_item.uuid }}" 
+
+- name: Get DNS
+  set_fact:
+    dns:                    "{{ vmnic_item.dns_ip_addresses_list | join('|') }}"
+  when: " 'dns_ip_addresses_list' in vmnic_item.keys() " 
+
+- name: Get IP
+  set_fact: 
+    ips:                    "{{ ((ip_list | map(attribute = 'ip') | list | join('|') ) ) }}"
+  when: " (ip_list | length > 0) and (ip_list.0.ip is defined )"
 
 
-    nic_uuid:                             "{{ _nic.uuid }}" 
+- name: Get Gateway
+  vars:
+    _gw:                  "{{ ( (ip_list | map(attribute = 'gateway_address_list')   ) )}}"
+  set_fact: 
+    gw:                  "{{_gw.0.0}}"    
+  when: " (ip_list | length > 0) and (ip_list.0.gateway_address_list is defined) "
+
 
 
 - name: Add to vm nic csv file
   lineinfile:
       path: "{{ vm_nic_csv }}"
       line: >-
-        {{  vm_name + ',' + mac + ',' + nic_uuid 
+        {{  vm_name  + ',' + ips  + ',' + gw  + ',' + dns + ',' + mac + ',' + nic_uuid 
         }}
-  # vm_name,mac,nic_uuid 
+  # vm_name,ips,gateway,dns,mac,nic_uuid 

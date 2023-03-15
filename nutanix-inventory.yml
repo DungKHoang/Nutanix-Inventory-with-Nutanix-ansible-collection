@@ -39,6 +39,18 @@
 
 
 
+        - name: Define CSV names
+          set_fact:
+             cluster_csv:                 "{{csvdir}}/cluster.csv"
+             node_csv:                    "{{csvdir}}/node.csv"
+             vm_csv:                      "{{csvdir}}/vm.csv"
+             vm_disk_csv:                 "{{csvdir}}/vm_disk.csv"
+             vm_nic_csv:                  "{{csvdir}}/vm_nic.csv"
+             subnet_csv:                  "{{csvdir}}/subnet.csv"
+
+
+
+
         # ----- CSV files contents
         - name: create CSV cluster file
           copy:
@@ -73,7 +85,13 @@
           copy:
             dest: "{{ vm_nic_csv }}"
             content: >- 
-              vm_name,mac,nic_uuid 
+              vm_name,ips,gateway,dns,mac,nic_uuid 
+
+        - name: create CSV subnet file
+          copy:
+            dest: "{{ subnet_csv }}"
+            content: >- 
+              cluster_name,name,type,vlan,switch_name,subnet_ip,length,gateway,dhcp,pool_range,owner
 
 
 # ----------------------------------
@@ -86,6 +104,7 @@
             nutanix_username:   "{{ p_username }}"
             nutanix_password:   "{{ p_password }}"
             validate_certs:     false 
+            length:             1000            # arbitrary number to get all records
           register:             clu_result
 
         - name: get host info
@@ -94,6 +113,7 @@
             nutanix_username:   "{{ p_username }}"
             nutanix_password:   "{{ p_password }}"
             validate_certs:     false 
+            length:             1000            # arbitrary number to get all records
           register:             node_result
 
         - name: get vms information
@@ -102,16 +122,26 @@
             nutanix_username:   "{{ p_username }}"
             nutanix_password:   "{{ p_password }}"
             validate_certs:     false 
-            length:             1000                  # arbitrary number to get all VMs. If not specified, it returns only 22
+            length:             1000            # arbitrary number to get all records
           register:             vm_result
-        
+
+        - name: get subnet information
+          ntnx_subnets_info:
+            nutanix_host:       "{{ prism }}"  
+            nutanix_username:   "{{ p_username }}"
+            nutanix_password:   "{{ p_password }}"
+            validate_certs:     false 
+            length:             1000            # arbitrary number to get all records
+          register:             subnet_result
+
+
 
         - name: Define endpoints
           set_fact:
             cluster_endpoint:           "{{ clu_result.response.entities }}" 
             node_endpoint:              '{{ node_result.response.entities }}'
             vm_endpoint:                '{{ vm_result.response.entities }}'
-
+            subnet_endpoint:            '{{ subnet_result.response.entities }}'
                
         - name: Get cluster inventory
           include_tasks: cluster-sub-inventory.yml
@@ -131,3 +161,8 @@
           loop_control:
               loop_var: vm_item
 
+        - name: Get subnet inventory
+          include_tasks: subnet-sub-inventory.yml
+          loop: '{{ subnet_endpoint }}'
+          loop_control:
+              loop_var: subnet_item

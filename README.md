@@ -3,9 +3,11 @@
 This series of Ansible playbooks perform an inventory of resources managed by Nutanix Prism including:
    * Cluster
    * Cluster nodes
+   * Subnets
    * VMs 
    * VM's disks
    * VM's NIC
+   
 
 
 Ansible playbooks will generate CSV files as output from the inventory 

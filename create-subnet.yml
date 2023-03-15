@@ -1,0 +1,56 @@
+---
+
+- hosts: localhost
+  gather_facts:       false
+  collections:
+    -   nutanix.ncp
+  vars:
+      prism:            10.1.10.50
+      p_username:       dungh
+      p_password:       StormLake21!
+
+  tasks:
+    - name: Create subnet
+      ntnx_subnets:
+        nutanix_host:         "{{ prism }}"  
+        nutanix_username:     "{{ p_username }}"
+        nutanix_password:     "{{ p_password }}"
+        validate_certs:       false
+
+        state: present
+        name: 'dhk-subnet-with-iPAM'
+        vlan_subnet:
+          vlan_id: 222
+          virtual_switch:
+            name: 'vs0'
+          cluster:
+            name: "hpe-cc01ntx-clu01"
+          ipam:
+            network_ip:       10.1.10.0
+            network_prefix:   24
+            gateway_ip:       10.1.10.254
+            ip_pools:
+              - start_ip:     10.1.10.100
+                end_ip:       10.1.10.200
+
+    - name: Create subnet
+      ntnx_subnets:
+        nutanix_host:         "{{ prism }}"  
+        nutanix_username:     "{{ p_username }}"
+        nutanix_password:     "{{ p_password }}"
+        validate_certs:       false
+
+        state: present
+        name: ' dhk-external-subnet-with-NAT '
+        external_subnet:
+          vlan_id: 30
+          enable_nat: true
+          cluster:
+            name: "hpe-cc01ntx-clu01"
+          ipam:
+            network_ip:       10.1.30.0
+            network_prefix:   24
+            gateway_ip:       10.1.30.254
+            ip_pools:
+              - start_ip:     10.1.30.100
+                end_ip:       10.1.30.200
