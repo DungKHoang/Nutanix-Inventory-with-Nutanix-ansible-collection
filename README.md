@@ -22,13 +22,15 @@ Use the nutanix Ansible github(https://github.com/nutanix/nutanix.ansible) to do
 
 ## Workflow
 The flow for playbooks is as follow:
-* nutanix-inventory.yml    |-->  cluster-sub-inventory.yml 
+* nutanix-inventory.yml    |---> cluster-sub-inventory.yml 
+
+                           |---> subnet-sub-inventory.yml
 
                            |---> node-sub-inventory.yml
 
                            |---> vm-sub-inventory.yml
 
-* svm-sub-inventory.yml
+* vm-sub-inventory.yml
 
    |---> vm-disk-sub-inventory.yml
 
